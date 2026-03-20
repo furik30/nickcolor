@@ -1,0 +1,112 @@
+# =============================================
+#  NickColor Plugin Configuration
+# =============================================
+
+# Основные настройки
+settings:
+  # Максимальная длина ника (включая цветовые коды)
+  max-nick-length: 30
+
+  # Разрешить градиенты?
+  allow-gradients: true
+
+  # Минимальное количество символов для градиента
+  min-chars-for-gradient: 3
+
+  # Кулдаун между сменами цвета (в секундах)
+  cooldown-seconds: 60
+
+  # Сохранять цвет после выхода?
+  save-colors: true
+
+  # Использовать базу данных для сохранения?
+  use-database: false
+
+  # Разрешить цвета в чате?
+  apply-to-chat: true
+
+  # Разрешить цвета в табе (списке игроков)?
+  apply-to-tablist: true
+
+  # Формат ника в табе
+  tablist-format: '{color}{player}'
+
+# Экономика (если есть плагин Vault)
+economy:
+  # Стоимость изменения цвета
+  price: 100.0
+
+  # Бесплатно для админов?
+  free-for-admins: true
+
+  # Сообщение при недостатке денег
+  insufficient-funds: "&cНедостаточно денег! Нужно: {price}"
+
+# Цвета по умолчанию для рангов (опционально)
+default-colors:
+  owner: "#FF5555"
+  admin: "#FFAA00"
+  moderator: "#55FF55"
+  vip: "#AA00AA"
+  player: "#FFFFFF"
+
+# Градиенты по умолчанию
+default-gradients:
+  rainbow: ["#FF0000", "#FF7F00", "#FFFF00", "#00FF00", "#0000FF", "#4B0082", "#8B00FF"]
+  fire: ["#FF0000", "#FF5500", "#FFAA00"]
+  ice: ["#00FFFF", "#0088FF", "#0000FF"]
+  nature: ["#00FF00", "#00AA00", "#006600"]
+
+# Сообщения
+messages:
+  # Общие сообщения
+  no-permission: "&cУ вас нет прав на эту команду!"
+  player-only: "&cЭту команду могут использовать только игроки!"
+  reloaded: "&aКонфигурация перезагружена!"
+
+  # Сообщения для команды /nickcolor
+  usage: |
+    &6&lИспользование команды /nickcolor:
+    &7/nickcolor <hex-цвет> &f- Изменить цвет ника
+    &7Пример: &f/nickcolor &lFF69B4
+    &7/nickcolor <цвет1>:<цвет2> &f- Градиент
+    &7Пример: &f/nickcolor &lFF69B4:00FF7F
+    &7/nickcolor gradient <название> &f- Предустановленный градиент
+    &7Доступные градиенты: &frainbow, fire, ice, nature
+    &7/nickcolor reset &f- Сбросить цвет к стандартному
+
+  # Успешные операции
+  color-changed: "&aВаш ник изменён на: {nick}"
+  gradient-applied: "&aГрадиент применён: {gradient}"
+  color-reset: "&aЦвет ника сброшен к стандартному"
+
+  # Ошибки
+  invalid-hex: "&cНекорректный HEX-цвет! Формат: FF69B4 или #FF69B4"
+  invalid-gradient: "&cНекорректный градиент! Формат: FF69B4:00FF7F"
+  gradient-not-found: "&cГрадиент '{name}' не найден!"
+  too-long: "&cСлишком длинный ник! Максимум: {max} символов"
+  cooldown: "&cПодождите {seconds} секунд перед следующей сменой цвета!"
+  gradients-disabled: "&cГрадиенты отключены в настройках сервера"
+
+  # Информационные
+  current-color: "&7Текущий цвет: {color}"
+  available-colors: "&7Доступные цвета: &f{colors}"
+  cooldown-remaining: "&7До следующей смены: &f{seconds} сек"
+
+# Настройки базы данных (если use-database: true)
+database:
+  # Тип базы данных: sqlite, mysql
+  type: sqlite
+
+  # Для MySQL
+  mysql:
+    host: localhost
+    port: 3306
+    database: minecraft
+    username: root
+    password: ""
+    table-prefix: nickcolor_
+
+  # Для SQLite (просто создаст файл в папке плагина)
+  sqlite:
+    filename: colors.db

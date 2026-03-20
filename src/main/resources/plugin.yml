@@ -1,0 +1,53 @@
+# Основная информация о плагине
+name: NickColorPlugin        # Имя плагина (без пробелов!)
+version: 1.0.0               # Версия плагина
+main: me.meldot.nickcolor.NickColorPlugin # Главный класс
+api-version: '1.20'          # Версия API Minecraft
+description: Позволяет игрокам менять цвет ника с помощью HEX-кодов
+author: YourName             # Ваше имя
+website: https://example.com # Ваш сайт (опционально)
+
+# Поддерживаемые версии (опционально)
+load: POSTWORLD              # POSTWORLD, STARTUP
+loadbefore: []               # Плагины, которые должны загружаться после
+depend: []                   # Обязательные плагины
+softdepend: [Vault, PlaceholderAPI] # Необязательные плагины
+
+# Команды плагина
+commands:
+  nickcolor:                 # Имя команды (/nickcolor)
+    description: Изменяет цвет вашего ника
+    usage: |
+      §cИспользование:
+      §7/nickcolor <цвет> §f- Изменить цвет ника
+      §7/nickcolor <цвет1>:<цвет2> §f- Градиент
+      §7Пример: /nickcolor FF69B4 или FF69B4:00FF7F
+    aliases: [nc, color, nickc]  # Альтернативные названия
+    permission: nickcolor.use
+
+  nickcolorreload:           # Вторая команда для перезагрузки
+    description: Перезагружает конфигурацию плагина
+    usage: /nickcolorreload
+    permission: nickcolor.admin
+
+# Разрешения (permissions)
+permissions:
+  nickcolor.use:             # Основное разрешение
+    description: Позволяет использовать команду /nickcolor
+    default: true            # true - у всех, false - ни у кого, op - только у операторов
+
+  nickcolor.admin:           # Админское разрешение
+    description: Позволяет перезагружать плагин
+    default: op
+
+  nickcolor.bypasscooldown:  # Обходить кулдаун
+    description: Позволяет менять цвет без задержки
+    default: op
+
+  nickcolor.*:               # Все разрешения плагина
+    description: Даёт все права плагина
+    default: op
+    children:
+      nickcolor.use: true
+      nickcolor.admin: true
+      nickcolor.bypasscooldown: true
