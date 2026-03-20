@@ -1,0 +1,35 @@
+name: Build and Release Plugin
+
+# Скрипт запускается только тогда, когда создается новый Release в GitHub
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Скачиваем код из репозитория
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. Устанавливаем Java 17 (как указано в pom.xml)
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven # Ускоряет сборку за счет кэширования зависимостей
+
+    # 3. Собираем проект через Maven
+    - name: Build with Maven
+      run: mvn clean package -B
+
+    # 4. Загружаем собранный .jar файл в созданный релиз
+    - name: Upload JAR to Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: target/*.jar # Берет все .jar файлы из папки target
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Токен выдается GitHub автоматически

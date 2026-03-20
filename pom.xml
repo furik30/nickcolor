@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <!-- Основная информация о проекте -->
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>me.meldot</groupId>
+    <artifactId>NickColorPlugin</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>  <!-- Тип сборки - JAR файл -->
+
+    <name>NickColorPlugin</name>
+    <description>Плагин для изменения цвета ника с градиентами</description>
+
+    <!-- Версия Java (17 для MC 1.17+, 8 для 1.16-) -->
+    <properties>
+        <java.version>21</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <!-- Откуда скачивать библиотеки -->
+    <repositories>
+        <!-- Основной репозиторий Paper (рекомендуется) -->
+        <repository>
+            <id>papermc</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+
+        <!-- Репозиторий Spigot (альтернатива) -->
+        <repository>
+            <id>spigot-repo</id>
+            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+        </repository>
+
+        <!-- Репозиторий Maven Central (стандартные библиотеки) -->
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+    </repositories>
+
+    <!-- Зависимости проекта (библиотеки) -->
+    <dependencies>
+        <!-- Paper API - для версии 1.20.4 -->
+        <!-- ДЛЯ ДРУГИХ ВЕРСИЙ ИЗМЕНИТЕ ВЕРСИЮ НИЖЕ! -->
+        <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>1.21.11-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>  <!-- Не включать в JAR -->
+        </dependency>
+
+        <!-- Другие версии (раскомментируйте нужную) -->
+        <!--
+        <dependency>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot-api</artifactId>
+            <version>1.16.5-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.bukkit</groupId>
+            <artifactId>bukkit</artifactId>
+            <version>1.12.2-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        -->
+    </dependencies>
+
+    <!-- Настройки сборки -->
+    <build>
+        <!-- Имя итогового JAR файла -->
+        <finalName>${project.artifactId}-${project.version}</finalName>
+
+        <!-- Плагины для сборки -->
+        <plugins>
+            <!-- Компилятор Java -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+            </plugin>
+
+            <!-- Копирование ресурсов -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+
+            <!-- Создание JAR с зависимостями (если нужно) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <outputFile>${project.basedir}/server/plugins/${project.artifactId}-${project.version}.jar</outputFile>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
