@@ -3,8 +3,8 @@ version: 1.0.0
 main: me.meldot.nickcolor.NickColorPlugin
 api-version: '1.21'
 description: Плагин для установки цвета и градиента ника (Chat, TabList, NameTag)
-author: Jules
-website: https://github.com/
+author: furik30
+website: https://github.com/furik30/nickolor
 
 # Зависимости
 depend: [PlaceholderAPI]

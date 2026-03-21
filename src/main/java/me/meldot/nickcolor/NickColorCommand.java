@@ -3,7 +3,6 @@ package me.meldot.nickcolor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -57,9 +56,6 @@ public class NickColorCommand implements CommandExecutor, TabCompleter {
                 break;
             case "reload":
                 handleAdminReloadCommand(sender);
-                break;
-            case "list":
-                sendHelpMessage(sender);
                 break;
             default:
                 // Обработка /nc <hex> или /nc <c1>:<c2>
@@ -259,7 +255,7 @@ public class NickColorCommand implements CommandExecutor, TabCompleter {
      */
     private void applySolidColorToPlayer(Player target, String hex, CommandSender sender) {
         if (!ColorUtils.isValidHex(hex)) {
-            sendMessage(sender, "messages.invalid-hex");
+            sendMessage(sender, "messages.invalid-command");
             return;
         }
 
@@ -399,7 +395,6 @@ public class NickColorCommand implements CommandExecutor, TabCompleter {
                 completions.add("random");
                 completions.add("gradient");
                 completions.add("help");
-                completions.add("list");
             }
             if (sender.hasPermission("nickcolor.admin.set")) {
                 completions.add("set");

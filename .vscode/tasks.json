@@ -12,31 +12,14 @@
             }
         },
         {
-            "label": "start-server",
+            "label": "reload-plugin",
             "type": "shell",
-            "isBackground": true,
-            "command": "java -Xms1G -Xmx2G -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005 -Dcom.mojang.eula.agree=true -jar server.jar nogui",
-            "options": {
-                "cwd": "${workspaceFolder}/server"
-            },
+            "command": "mcrcon -H 127.0.0.1 -P 25575 -p pass123 'plugman reload all'",
             "dependsOn": "build-plugin",
-            "problemMatcher": [
-                {
-                    "pattern": [
-                        {
-                            "regexp": "\\b\\B",
-                            "file": 1,
-                            "location": 2,
-                            "message": 3
-                        }
-                    ],
-                    "background": {
-                        "activeOnStart": true,
-                        "beginsPattern": "^",
-                        "endsPattern": "Listening for transport dt_socket"
-                    }
-                }
-            ]
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
         }
     ]
 }
