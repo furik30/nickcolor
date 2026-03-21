@@ -1,8 +1,11 @@
 package me.meldot.nickcolor;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
 
 import java.util.Map;
 import java.util.UUID;
@@ -24,7 +27,6 @@ public class NickColorPlugin extends JavaPlugin {
     public void onEnable() {
         // Создание конфига по умолчанию
         saveDefaultConfig();
-        debug("Конфиг по умолчанию создан.");
 
         // Инициализация менеджера базы данных (SQLite)
         databaseManager = new DatabaseManager(this);

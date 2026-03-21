@@ -1,5 +1,7 @@
 package me.meldot.nickcolor;
 
+import org.bukkit.Bukkit;
+
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;

@@ -3,11 +3,11 @@
     "configurations": [
         {
             "type": "java",
-            "name": "Релоад плагина",
+            "name": "Запуск и Дебаг Сервера",
             "request": "attach",
             "hostName": "localhost",
             "port": 5005,
-            "preLaunchTask": "reload-plugin"
+            "preLaunchTask": "start-server"
         }
     ]
 }
