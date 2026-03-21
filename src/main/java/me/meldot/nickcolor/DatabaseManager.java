@@ -89,15 +89,17 @@ public class DatabaseManager {
      */
     public void saveColorAsync(UUID uuid, String playerName, String colorFormat) {
         CompletableFuture.runAsync(() -> {
-            String sql = "INSERT OR REPLACE INTO player_colors (uuid, player_name, color_format) VALUES (?, ?, ?)";
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setString(1, uuid.toString());
-                statement.setString(2, playerName);
-                statement.setString(3, colorFormat);
-                statement.executeUpdate();
-                debug("Выполнен SQL-запрос: " + sql + " | Параметры: " + uuid + ", " + playerName + ", " + colorFormat);
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "Ошибка при сохранении цвета для игрока " + playerName, e);
+            synchronized (connection) {
+                String sql = "INSERT OR REPLACE INTO player_colors (uuid, player_name, color_format) VALUES (?, ?, ?)";
+                try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setString(1, uuid.toString());
+                    statement.setString(2, playerName);
+                    statement.setString(3, colorFormat);
+                    statement.executeUpdate();
+                    debug("Выполнен SQL-запрос: " + sql + " | Параметры: " + uuid + ", " + playerName + ", " + colorFormat);
+                } catch (SQLException e) {
+                    plugin.getLogger().log(Level.SEVERE, "Ошибка при сохранении цвета для игрока " + playerName, e);
+                }
             }
         });
     }
@@ -110,19 +112,21 @@ public class DatabaseManager {
      */
     public CompletableFuture<String> loadColorAsync(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
-            String sql = "SELECT color_format FROM player_colors WHERE uuid = ?";
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setString(1, uuid.toString());
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    debug("Выполнен SQL-запрос: " + sql + " | Параметры: " + uuid);
-                    if (resultSet.next()) {
-                        return resultSet.getString("color_format");
+            synchronized (connection) {
+                String sql = "SELECT color_format FROM player_colors WHERE uuid = ?";
+                try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setString(1, uuid.toString());
+                    try (ResultSet resultSet = statement.executeQuery()) {
+                        debug("Выполнен SQL-запрос: " + sql + " | Параметры: " + uuid);
+                        if (resultSet.next()) {
+                            return resultSet.getString("color_format");
+                        }
                     }
+                } catch (SQLException e) {
+                    plugin.getLogger().log(Level.SEVERE, "Ошибка при загрузке цвета для UUID " + uuid, e);
                 }
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "Ошибка при загрузке цвета для UUID " + uuid, e);
+                return null;
             }
-            return null;
         });
     }
 
@@ -133,13 +137,15 @@ public class DatabaseManager {
      */
     public void deleteColorAsync(UUID uuid) {
         CompletableFuture.runAsync(() -> {
-            String sql = "DELETE FROM player_colors WHERE uuid = ?";
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setString(1, uuid.toString());
-                statement.executeUpdate();
-                debug("Выполнен SQL-запрос: " + sql + " | Параметры: " + uuid);
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "Ошибка при удалении цвета для UUID " + uuid, e);
+            synchronized (connection) {
+                String sql = "DELETE FROM player_colors WHERE uuid = ?";
+                try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setString(1, uuid.toString());
+                    statement.executeUpdate();
+                    debug("Выполнен SQL-запрос: " + sql + " | Параметры: " + uuid);
+                } catch (SQLException e) {
+                    plugin.getLogger().log(Level.SEVERE, "Ошибка при удалении цвета для UUID " + uuid, e);
+                }
             }
         });
     }
