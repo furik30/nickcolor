@@ -6,6 +6,9 @@ description: Плагин для установки цвета и градиен
 author: Jules
 website: https://github.com/
 
+# Зависимости
+depend: [PlaceholderAPI]
+
 # Команды
 commands:
   nickcolor:

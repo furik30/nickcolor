@@ -32,12 +32,9 @@ public class JoinQuitListener implements Listener {
         // Асинхронная загрузка цвета
         plugin.getDatabaseManager().loadColorAsync(player.getUniqueId()).thenAccept(colorFormat -> {
             if (colorFormat != null && !colorFormat.isEmpty()) {
-                // Если цвет найден, применяем его
-                // Т.к. Bukkit API в основном не потокобезопасно (хотя Scoreboard Teams можно обновлять асинхронно, лучше сделать синхронно для избежания проблем)
-                plugin.getServer().getScheduler().runTask(plugin, () -> {
-                    plugin.applyColorFormatToPlayer(player, colorFormat);
-                    debug("Загружен цвет " + colorFormat + " для игрока " + player.getName());
-                });
+                // Если цвет найден, загружаем его в кеш плагина
+                plugin.cachePlayerColor(player, colorFormat);
+                debug("Загружен цвет " + colorFormat + " для игрока " + player.getName());
             } else {
                 debug("Цвет для игрока " + player.getName() + " не найден в БД.");
             }
@@ -46,15 +43,15 @@ public class JoinQuitListener implements Listener {
 
     /**
      * Обрабатывает выход игрока.
-     * Удаляет Scoreboard Team для освобождения памяти.
+     * Очищает кеш цвета игрока для экономии памяти.
      *
      * @param event Событие PlayerQuitEvent.
      */
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        plugin.removeScoreboardTeam(player);
-        debug("Scoreboard Team для " + player.getName() + " удалена при выходе.");
+        plugin.removePlayerColorFromCache(player);
+        debug("Цвет для " + player.getName() + " удален из кеша при выходе.");
     }
 
     /**
