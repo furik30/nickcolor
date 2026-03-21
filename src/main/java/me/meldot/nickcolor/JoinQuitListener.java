@@ -28,28 +28,46 @@ public class JoinQuitListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
+        // Скрываем ванильный ник сразу при входе
+        plugin.getNameTagManager().hideVanillaNameTag(player);
+
         // Асинхронная загрузка цвета
         plugin.getDatabaseManager().loadColorAsync(player.getUniqueId()).thenAccept(colorFormat -> {
-            if (colorFormat != null && !colorFormat.isEmpty()) {
-                // Если цвет найден, загружаем его в кеш плагина
-                plugin.cachePlayerColor(player, colorFormat);
-                debug("Загружен цвет " + colorFormat + " для игрока " + player.getName());
-            } else {
-                debug("Цвет для игрока " + player.getName() + " не найден в БД.");
-            }
+            // Возвращаемся в основной поток для спавна TextDisplay
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                // Защита от утечки сущности, если игрок отключился до завершения SQL-запроса
+                if (!player.isOnline()) return;
+
+                if (colorFormat != null && !colorFormat.isEmpty()) {
+                    // Если цвет найден, загружаем его в кеш плагина и обновляем ник
+                    plugin.cachePlayerColor(player, colorFormat);
+                    plugin.getNameTagManager().updateNameTag(player, colorFormat);
+                    debug("Загружен цвет " + colorFormat + " для игрока " + player.getName());
+                } else {
+                    // Если цвета нет, просто отображаем стандартный белый ник через TextDisplay
+                    plugin.getNameTagManager().updateNameTag(player, null);
+                    debug("Цвет для игрока " + player.getName() + " не найден в БД.");
+                }
+            });
         });
     }
 
     /**
      * Обрабатывает выход игрока.
-     * Очищает кеш цвета игрока для экономии памяти.
+     * Очищает кеш цвета игрока для экономии памяти и удаляет сущность TextDisplay.
      *
      * @param event Событие PlayerQuitEvent.
      */
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
+
+        // Удаляем кеш
         plugin.removePlayerColorFromCache(player);
+
+        // Удаляем TextDisplay (ник над головой)
+        plugin.getNameTagManager().removeNameTag(player);
+
         debug("Цвет для " + player.getName() + " удален из кеша при выходе.");
     }
 

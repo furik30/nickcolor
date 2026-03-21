@@ -14,7 +14,7 @@
         {
             "label": "reload-plugin",
             "type": "shell",
-            "command": "mcrcon -H 127.0.0.1 -P 25575 -p pass123 'plugman reload all'",
+            "command": "mcrcon -H 127.0.0.1 -P 25575 -p pass123 'plugman reload NickColorPlugin'",
             "dependsOn": "build-plugin",
             "presentation": {
                 "reveal": "always",
