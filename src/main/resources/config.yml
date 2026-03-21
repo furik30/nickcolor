@@ -1,112 +1,47 @@
 # =============================================
 #  NickColor Plugin Configuration
+#  Поддерживает форматирование MiniMessage.
+#  Цвета и градиенты сохраняются в базе SQLite.
 # =============================================
 
-# Основные настройки
-settings:
-  # Максимальная длина ника (включая цветовые коды)
-  max-nick-length: 30
+# Включить дебаг-режим? (Логирует SQL-запросы и подробные ошибки в консоль)
+debug: false
 
-  # Разрешить градиенты?
-  allow-gradients: true
+# Пресеты для команды /nc presets
+# Формат: <имя_пресета>: "<hex1>:<hex2>" (для градиента) или "<hex>" (для сплошного)
+presets:
+  fire: "#FF0000:#FFA500"
+  ocean: "#0000FF:#00FFFF"
+  emerald: "#00FF00:#00AA00"
+  sunset: "#FF4500:#FFD700"
+  ruby: "#E0115F"
+  sapphire: "#0F52BA"
 
-  # Минимальное количество символов для градиента
-  min-chars-for-gradient: 3
-
-  # Кулдаун между сменами цвета (в секундах)
-  cooldown-seconds: 60
-
-  # Сохранять цвет после выхода?
-  save-colors: true
-
-  # Использовать базу данных для сохранения?
-  use-database: false
-
-  # Разрешить цвета в чате?
-  apply-to-chat: true
-
-  # Разрешить цвета в табе (списке игроков)?
-  apply-to-tablist: true
-
-  # Формат ника в табе
-  tablist-format: '{color}{player}'
-
-# Экономика (если есть плагин Vault)
-economy:
-  # Стоимость изменения цвета
-  price: 100.0
-
-  # Бесплатно для админов?
-  free-for-admins: true
-
-  # Сообщение при недостатке денег
-  insufficient-funds: "&cНедостаточно денег! Нужно: {price}"
-
-# Цвета по умолчанию для рангов (опционально)
-default-colors:
-  owner: "#FF5555"
-  admin: "#FFAA00"
-  moderator: "#55FF55"
-  vip: "#AA00AA"
-  player: "#FFFFFF"
-
-# Градиенты по умолчанию
-default-gradients:
-  rainbow: ["#FF0000", "#FF7F00", "#FFFF00", "#00FF00", "#0000FF", "#4B0082", "#8B00FF"]
-  fire: ["#FF0000", "#FF5500", "#FFAA00"]
-  ice: ["#00FFFF", "#0088FF", "#0000FF"]
-  nature: ["#00FF00", "#00AA00", "#006600"]
-
-# Сообщения
+# Сообщения плагина (Поддерживается MiniMessage!)
 messages:
-  # Общие сообщения
-  no-permission: "&cУ вас нет прав на эту команду!"
-  player-only: "&cЭту команду могут использовать только игроки!"
-  reloaded: "&aКонфигурация перезагружена!"
-
-  # Сообщения для команды /nickcolor
-  usage: |
-    &6&lИспользование команды /nickcolor:
-    &7/nickcolor <hex-цвет> &f- Изменить цвет ника
-    &7Пример: &f/nickcolor &lFF69B4
-    &7/nickcolor <цвет1>:<цвет2> &f- Градиент
-    &7Пример: &f/nickcolor &lFF69B4:00FF7F
-    &7/nickcolor gradient <название> &f- Предустановленный градиент
-    &7Доступные градиенты: &frainbow, fire, ice, nature
-    &7/nickcolor reset &f- Сбросить цвет к стандартному
+  # Помощь по командам (/nc help)
+  help: |
+    <gold><b>Справка по плагину NickColor:</b></gold>
+    <gray>/nc <hex> <white>- Установить цвет (например: #FF5555)</white>
+    <gray>/nc <hex1>:<hex2> <white>- Установить градиент (например: #FF0000:#00FF00)</white>
+    <gray>/nc random <white>- Установить случайный цвет</white>
+    <gray>/nc random gradient <white>- Установить случайный градиент</white>
+    <gray>/nc presets <white>- Открыть меню готовых пресетов</white>
+    <gray>/nc reset <white>- Сбросить цвет ника</white>
 
   # Успешные операции
-  color-changed: "&aВаш ник изменён на: {nick}"
-  gradient-applied: "&aГрадиент применён: {gradient}"
-  color-reset: "&aЦвет ника сброшен к стандартному"
+  color-changed: "<green>Ваш цвет ника изменён на: {color}</green>"
+  gradient-applied: "<green>Ваш градиент изменён на: {gradient}</green>"
+  color-reset: "<green>Ваш цвет ника сброшен.</green>"
+  reloaded: "<green>Конфигурация плагина NickColor успешно перезагружена!</green>"
 
-  # Ошибки
-  invalid-hex: "&cНекорректный HEX-цвет! Формат: FF69B4 или #FF69B4"
-  invalid-gradient: "&cНекорректный градиент! Формат: FF69B4:00FF7F"
-  gradient-not-found: "&cГрадиент '{name}' не найден!"
-  too-long: "&cСлишком длинный ник! Максимум: {max} символов"
-  cooldown: "&cПодождите {seconds} секунд перед следующей сменой цвета!"
-  gradients-disabled: "&cГрадиенты отключены в настройках сервера"
+  # Ошибки и системные сообщения
+  no-permission: "<red>У вас нет прав на использование этой команды!</red>"
+  player-only: "<red>Эту команду могут использовать только игроки!</red>"
+  invalid-hex: "<red>Неверный формат HEX-кода! Пример: #FF5555</red>"
+  invalid-gradient: "<red>Неверный формат градиента! Пример: #FF0000:#00FF00</red>"
+  player-not-found: "<red>Игрок не найден или не в сети!</red>"
 
-  # Информационные
-  current-color: "&7Текущий цвет: {color}"
-  available-colors: "&7Доступные цвета: &f{colors}"
-  cooldown-remaining: "&7До следующей смены: &f{seconds} сек"
-
-# Настройки базы данных (если use-database: true)
-database:
-  # Тип базы данных: sqlite, mysql
-  type: sqlite
-
-  # Для MySQL
-  mysql:
-    host: localhost
-    port: 3306
-    database: minecraft
-    username: root
-    password: ""
-    table-prefix: nickcolor_
-
-  # Для SQLite (просто создаст файл в папке плагина)
-  sqlite:
-    filename: colors.db
+  # Пресеты
+  no-presets: "<red>Пресеты не настроены в конфигурации!</red>"
+  presets-header: "<gold><b>Доступные пресеты (нажмите, чтобы выбрать):</b></gold>"
