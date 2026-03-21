@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NickColorPlugin extends JavaPlugin {
 
     private DatabaseManager databaseManager;
+    private NameTagManager nameTagManager;
 
     // Потокобезопасный кеш цветов игроков для быстрого доступа (запрашивается FlectonePulse асинхронно)
     private final Map<UUID, String> playerColors = new ConcurrentHashMap<>();
@@ -29,6 +30,9 @@ public class NickColorPlugin extends JavaPlugin {
         databaseManager = new DatabaseManager(this);
         databaseManager.initialize();
 
+        // Инициализация менеджера ников над головой
+        nameTagManager = new NameTagManager(this);
+
         // Регистрация команд
         NickColorCommand cmdExecutor = new NickColorCommand(this);
         getCommand("nickcolor").setExecutor(cmdExecutor);
@@ -36,12 +40,14 @@ public class NickColorPlugin extends JavaPlugin {
 
         // Регистрация слушателей событий
         getServer().getPluginManager().registerEvents(new JoinQuitListener(this), this);
+        getServer().getPluginManager().registerEvents(nameTagManager, this);
 
         // Загрузка цветов для всех онлайн-игроков (полезно при /reload)
         for (Player p : Bukkit.getOnlinePlayers()) {
             databaseManager.loadColorAsync(p.getUniqueId()).thenAccept(color -> {
                 if (color != null && !color.isEmpty()) {
                     cachePlayerColor(p, color);
+                    Bukkit.getScheduler().runTask(this, () -> nameTagManager.updateNameTag(p, color));
                 }
             });
         }
@@ -54,7 +60,7 @@ public class NickColorPlugin extends JavaPlugin {
             getLogger().warning("PlaceholderAPI не найден! Плейсхолдеры не будут работать.");
         }
 
-        getLogger().info("Плагин NickColor (SQLite, MiniMessage) успешно загружен!");
+        getLogger().info("Плагин NickColor (SQLite, MiniMessage, TextDisplay) успешно загружен!");
     }
 
     @Override
@@ -62,6 +68,11 @@ public class NickColorPlugin extends JavaPlugin {
         // Закрываем БД
         if (databaseManager != null) {
             databaseManager.close();
+        }
+
+        // Удаляем все TextDisplay сущности, чтобы они не оставались в мире
+        if (nameTagManager != null) {
+            nameTagManager.removeAllNameTags();
         }
 
         getLogger().info("Плагин NickColor выключен.");
@@ -73,6 +84,14 @@ public class NickColorPlugin extends JavaPlugin {
      */
     public DatabaseManager getDatabaseManager() {
         return databaseManager;
+    }
+
+    /**
+     * Возвращает менеджер ников над головой.
+     * @return NameTagManager.
+     */
+    public NameTagManager getNameTagManager() {
+        return nameTagManager;
     }
 
     /**
@@ -97,6 +116,9 @@ public class NickColorPlugin extends JavaPlugin {
 
         // Сохраняем в БД (асинхронно)
         databaseManager.saveColorAsync(player.getUniqueId(), player.getName(), colorFormat);
+
+        // Обновляем NameTag (TextDisplay)
+        nameTagManager.updateNameTag(player, colorFormat);
     }
 
     /**
@@ -126,6 +148,9 @@ public class NickColorPlugin extends JavaPlugin {
     public void resetPlayerColor(Player player) {
         playerColors.remove(player.getUniqueId());
         databaseManager.deleteColorAsync(player.getUniqueId());
+
+        // Обновляем NameTag (сбрасываем на стандартный)
+        nameTagManager.updateNameTag(player, null);
     }
 
     /**
