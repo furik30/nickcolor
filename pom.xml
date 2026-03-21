@@ -44,30 +44,13 @@
 
     <!-- Зависимости проекта (библиотеки) -->
     <dependencies>
-        <!-- Paper API - для версии 1.20.4 -->
-        <!-- ДЛЯ ДРУГИХ ВЕРСИЙ ИЗМЕНИТЕ ВЕРСИЮ НИЖЕ! -->
+        <!-- Paper API -->
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.21.11-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>  <!-- Не включать в JAR -->
-        </dependency>
-
-        <!-- Другие версии (раскомментируйте нужную) -->
-        <!--
-        <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>1.16.5-R0.1-SNAPSHOT</version>
+            <version>1.21.1-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>org.bukkit</groupId>
-            <artifactId>bukkit</artifactId>
-            <version>1.12.2-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        -->
     </dependencies>
 
     <!-- Настройки сборки -->
