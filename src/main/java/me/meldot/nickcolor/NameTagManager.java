@@ -10,7 +10,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
-import org.joml.Matrix4f;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,17 +20,20 @@ import java.util.UUID;
  */
 public class NameTagManager implements Listener {
 
+    private final NickColorPlugin plugin;
     private final Map<UUID, TextDisplay> playerDisplays = new HashMap<>();
 
-    // Сдвиг по оси Y для позиционирования ника над головой пассажира
-    private static final float STANDING_Y_OFFSET = 0.35f;
-    private static final float SNEAKING_Y_OFFSET = 0.05f;
+    // Абсолютный сдвиг по оси Y от ног игрока (так как мы больше не используем пассажиров)
+    private static final float STANDING_Y_OFFSET = 2.15f;
+    private static final float SNEAKING_Y_OFFSET = 1.6f;
 
     // Имя команды для скрытия ванильных ников
     private static final String HIDDEN_TEAM_NAME = "NC_HIDDEN_NAMETAGS";
 
     public NameTagManager(NickColorPlugin plugin) {
+        this.plugin = plugin;
         setupHiddenTeam();
+        startTrackingTask();
     }
 
     /**
@@ -73,13 +75,15 @@ public class NameTagManager implements Listener {
             display = player.getWorld().spawn(player.getLocation(), TextDisplay.class, entity -> {
                 entity.setPersistent(false);
                 entity.setBillboard(Display.Billboard.CENTER); // Текст всегда смотрит на камеру
-                entity.setShadowed(true); // Ванильная тень текста
                 // Настраиваем прозрачность фона по умолчанию (полупрозрачный черный)
                 entity.setDefaultBackground(true);
+                // Включаем интерполяцию движения (1 тик), чтобы сгладить следование за игроком
+                entity.setTeleportDuration(1);
             });
 
-            // Добавляем как пассажира
-            player.addPassenger(display);
+            // Скрываем кастомный неймтаг от самого игрока-владельца
+            player.hideEntity(plugin, display);
+
             playerDisplays.put(player.getUniqueId(), display);
         }
 
@@ -92,26 +96,36 @@ public class NameTagManager implements Listener {
         }
         display.text(nameComponent);
 
-        // Устанавливаем правильную позицию (сдвиг)
-        applyTransformation(display, player.isSneaking());
+        // Устанавливаем правильную прозрачность
+        updateOpacity(display, player.isSneaking());
+        // Мгновенно обновляем позицию
+        float yOffset = player.isSneaking() ? SNEAKING_Y_OFFSET : STANDING_Y_OFFSET;
+        display.teleport(player.getLocation().add(0, yOffset, 0));
+    }
+
+    private void updateOpacity(TextDisplay display, boolean isSneaking) {
+        if (isSneaking) {
+            display.setTextOpacity((byte) 100);
+        } else {
+            display.setTextOpacity((byte) -1);
+        }
     }
 
     /**
-     * Применяет матрицу трансформации для сдвига TextDisplay.
+     * Фоновая задача для синхронизации позиции TextDisplay с игроками.
      */
-    private void applyTransformation(TextDisplay display, boolean isSneaking) {
-        float yOffset = isSneaking ? SNEAKING_Y_OFFSET : STANDING_Y_OFFSET;
+    private void startTrackingTask() {
+        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            for (Map.Entry<UUID, TextDisplay> entry : playerDisplays.entrySet()) {
+                Player player = Bukkit.getPlayer(entry.getKey());
+                TextDisplay display = entry.getValue();
 
-        // Создаем матрицу трансформации только со сдвигом по Y
-        Matrix4f transformation = new Matrix4f().translate(0, yOffset, 0);
-        display.setTransformationMatrix(transformation);
-
-        // Управляем прозрачностью текста при приседании
-        if (isSneaking) {
-            display.setTextOpacity((byte) 100); // Полупрозрачный (от 0 до 255, где 255 - полностью непрозрачный, байт может переполняться в Java, но 100 ок)
-        } else {
-            display.setTextOpacity((byte) -1); // 255 (полная непрозрачность)
-        }
+                if (player != null && player.isOnline() && display != null && !display.isDead()) {
+                    float yOffset = player.isSneaking() ? SNEAKING_Y_OFFSET : STANDING_Y_OFFSET;
+                    display.teleport(player.getLocation().add(0, yOffset, 0));
+                }
+            }
+        }, 1L, 1L);
     }
 
     /**
@@ -145,7 +159,9 @@ public class NameTagManager implements Listener {
         TextDisplay display = playerDisplays.get(player.getUniqueId());
 
         if (display != null && !display.isDead()) {
-            applyTransformation(display, event.isSneaking());
+            updateOpacity(display, event.isSneaking());
+            float yOffset = event.isSneaking() ? SNEAKING_Y_OFFSET : STANDING_Y_OFFSET;
+            display.teleport(player.getLocation().add(0, yOffset, 0));
         }
     }
 }
