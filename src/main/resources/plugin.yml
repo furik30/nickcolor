@@ -1,5 +1,5 @@
 name: NickColorPlugin
-version: 1.0.0
+version: '${project.version}'
 main: me.meldot.nickcolor.NickColorPlugin
 api-version: '1.21'
 description: Плагин для установки цвета и градиента ника (Chat, TabList, NameTag)
