@@ -45,10 +45,12 @@ public class NickColorPlugin extends JavaPlugin {
         // Загрузка цветов для всех онлайн-игроков (полезно при /reload)
         for (Player p : Bukkit.getOnlinePlayers()) {
             databaseManager.loadColorAsync(p.getUniqueId()).thenAccept(color -> {
-                if (color != null && !color.isEmpty()) {
-                    cachePlayerColor(p, color);
-                    Bukkit.getScheduler().runTask(this, () -> nameTagManager.updateNameTag(p, color));
-                }
+                Bukkit.getScheduler().runTask(this, () -> {
+                    if (color != null && !color.isEmpty()) {
+                        cachePlayerColor(p, color);
+                    }
+                    nameTagManager.updateNameTag(p, color);
+                });
             });
         }
 

@@ -52,30 +52,36 @@ public class NameTagManager implements Listener {
         team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
     }
 
-    public void hideVanillaNameTag(Player player) {
+    /**
+     * Универсальный метод для скрытия/показа ванильного ника.
+     */
+    public void setVanillaNameTagVisible(Player player, boolean visible) {
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
         Team team = scoreboard.getTeam(HIDDEN_TEAM_NAME);
-        if (team != null && !team.hasEntry(player.getName())) {
-            team.addEntry(player.getName());
-        }
-    }
+        if (team == null) return;
 
-    public void showVanillaNameTag(Player player) {
-        Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
-        Team team = scoreboard.getTeam(HIDDEN_TEAM_NAME);
-        if (team != null && team.hasEntry(player.getName())) {
-            team.removeEntry(player.getName());
+        if (visible) {
+            if (team.hasEntry(player.getName())) team.removeEntry(player.getName());
+        } else {
+            if (!team.hasEntry(player.getName())) team.addEntry(player.getName());
         }
     }
 
     public void updateNameTag(Player player, String colorFormat) {
-        if (!plugin.getConfig().getBoolean("custom-nametags", true) || colorFormat == null || colorFormat.isEmpty()) {
-            removeNameTag(player);
-            showVanillaNameTag(player);
-            return;
-        }
+        // Читаем настройки
+        boolean customEnabled = plugin.getConfig().getBoolean("nametags.custom-enabled", true);
+        boolean vanillaSeeThrough = plugin.getConfig().getBoolean("nametags.vanilla-see-through", true);
+        
+        boolean hasColor = customEnabled && colorFormat != null && !colorFormat.isEmpty();
+        boolean forceTextDisplay = !vanillaSeeThrough;
 
-        hideVanillaNameTag(player);
+        // Если цвет не нужен и мы разрешаем просвечивание ванильного ника - возвращаем дефолт
+        if (!hasColor && !forceTextDisplay) {
+            removeTextDisplayOnly(player);
+            setVanillaNameTagVisible(player, true);
+            return;
+        }        
+        setVanillaNameTagVisible(player, false);
         TextDisplay display = playerDisplays.get(player.getUniqueId());
 
         if (display == null || display.isDead()) {
@@ -84,28 +90,28 @@ public class NameTagManager implements Listener {
                 entity.setBillboard(Display.Billboard.CENTER);
                 entity.setDefaultBackground(true);
                 
-                // Применяем визуальный сдвиг вниз, не меняя физическую точку привязки
+                // Применяем визуальный сдвиг вниз
                 entity.setTransformation(new Transformation(
-                        new Vector3f(0f, PASSENGER_Y_OFFSET, 0f), // Сдвиг (Translation)
-                        new AxisAngle4f(),                        // Левое вращение (нет)
-                        new Vector3f(1f, 1f, 1f),                 // Масштаб (1.0)
-                        new AxisAngle4f()                         // Правое вращение (нет)
+                        new Vector3f(0f, PASSENGER_Y_OFFSET, 0f), 
+                        new AxisAngle4f(),                        
+                        new Vector3f(1f, 1f, 1f),                 
+                        new AxisAngle4f()                         
                 ));
             });
 
-            player.hideEntity(plugin, display);
+            player.hideEntity(plugin, display); // Игрок не должен видеть свой TextDisplay
             playerDisplays.put(player.getUniqueId(), display);
         }
 
-        // Устанавливаем текст
-        Component nameComponent = (colorFormat != null && !colorFormat.isEmpty()) 
+        // Форматируем текст
+        Component nameComponent = hasColor
                 ? ColorUtils.applyFormat(colorFormat, player.getName()) 
                 : Component.text(player.getName());
                 
         display.text(nameComponent);
         updateOpacity(display, player.isSneaking());
 
-        // Сажаем дисплей на игрока, если он вдруг слез
+        // Сажаем дисплей на игрока
         if (!player.getPassengers().contains(display)) {
             player.addPassenger(display);
         }
@@ -114,11 +120,10 @@ public class NameTagManager implements Listener {
     private void updateOpacity(TextDisplay display, boolean isSneaking) {
         if (isSneaking) {
             display.setTextOpacity((byte) 100);
-            display.setSeeThrough(false); // Чтобы ник скрывался за блоками
+            display.setSeeThrough(false);
         } else {
-            display.setTextOpacity((byte) -1); // Дефолтная прозрачность (255)
-            
-            display.setSeeThrough(false); // Чтобы ник скрывался за блоками
+            display.setTextOpacity((byte) -1);
+            display.setSeeThrough(false);
         }
     }
 
@@ -130,13 +135,12 @@ public class NameTagManager implements Listener {
         boolean isVanished = isPlayerVanished(player);
 
         if (isSpectator || isVanished) {
-            display.setViewRange(0f); // Полностью прячем сущность (не рендерится)
+            display.setViewRange(0f);
         } else {
-            display.setViewRange(1.0f); // Стандартная видимость
+            display.setViewRange(1.0f);
         }
     }
 
-    // Проверка ваниша через универсальную метадату (работает с 90% плагинов на ваниш)
     @Deprecated
     private boolean isPlayerVanished(Player player) {
         if (player.hasMetadata("vanished")) {
@@ -147,9 +151,20 @@ public class NameTagManager implements Listener {
         return false;
     }
 
-    public void removeNameTag(Player player) {
+    /**
+     * Удаляет TextDisplay сущность, не трогая скорборд.
+     */
+    private void removeTextDisplayOnly(Player player) {
         TextDisplay display = playerDisplays.remove(player.getUniqueId());
         if (display != null && !display.isDead()) display.remove();
+    }
+
+    /**
+     * Полностью удаляет кастомный ник игрока (используется при выходе).
+     */
+    public void removeNameTag(Player player) {
+        removeTextDisplayOnly(player);
+        setVanillaNameTagVisible(player, true);
     }
 
     public void removeAllNameTags() {
@@ -158,27 +173,23 @@ public class NameTagManager implements Listener {
         }
         playerDisplays.clear();
 
-        // При выключении плагина восстанавливаем все ванильные ники (удаляя скрытую команду)
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
         Team team = scoreboard.getTeam(HIDDEN_TEAM_NAME);
         if (team != null) team.unregister();
     }
 
-    // --- Обработчики событий ---
+    // --- Обработчики событий (без изменений) ---
 
     @EventHandler
     public void onPlayerToggleSneak(PlayerToggleSneakEvent event) {
         TextDisplay display = playerDisplays.get(event.getPlayer().getUniqueId());
         if (display != null && !display.isDead()) {
-            // Больше не нужно телепортировать! Изменяем только прозрачность.
-            // Клиент сам плавно опустит пассажира при приседании игрока.
             updateOpacity(display, event.isSneaking());
         }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onGameModeChange(PlayerGameModeChangeEvent event) {
-        // Запускаем через тик, чтобы режим точно применился
         Bukkit.getScheduler().runTask(plugin, () -> {
             refreshVisibility(event.getPlayer(), event.getNewGameMode());
         });
@@ -200,14 +211,12 @@ public class NameTagManager implements Listener {
     @EventHandler
     public void onEntityDismount(EntityDismountEvent event) {
         if (event.getEntity() instanceof TextDisplay && playerDisplays.containsValue(event.getEntity())) {
-            // Если тот, с кого слезают - игрок, и он мертв, то разрешаем отцепиться!
             if (event.getDismounted() instanceof Player) {
                 Player player = (Player) event.getDismounted();
                 if (player.isDead()) {
-                    return; // Прерываем проверку, не отменяем ивент
+                    return; 
                 }
             }
-            // В остальных случаях (баги клиента) не даем нику отвалиться
             event.setCancelled(true);
         }
     }
@@ -217,8 +226,6 @@ public class NameTagManager implements Listener {
         Player player = event.getPlayer();
         TextDisplay display = playerDisplays.get(player.getUniqueId());
         if (display != null && !display.isDead()) {
-            // Ник сам отцепится благодаря фиксу выше. 
-            // Нам остается только сделать его невидимым, чтобы он не висел в воздухе над местом смерти.
             display.setViewRange(0f); 
         }
     }
@@ -230,9 +237,7 @@ public class NameTagManager implements Listener {
         if (display != null && !display.isDead()) {
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (player.isOnline()) {
-                    // Сажаем обратно на голову
                     player.addPassenger(display);
-                    // Пересчитываем видимость (вдруг он возродился в спектаторе)
                     refreshVisibility(player, player.getGameMode()); 
                 }
             }, 1L);

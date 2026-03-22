@@ -357,7 +357,13 @@ public class NickColorCommand implements CommandExecutor, TabCompleter {
         }
 
         plugin.reloadConfig();
-        // При желании можно также переподключиться к БД, но для SQLite обычно достаточно просто перечитать конфиг.
+        
+        // Моментально применяем новые настройки NameTagManager для всех игроков онлайн
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            String color = plugin.getPlayerColor(p);
+            plugin.getNameTagManager().updateNameTag(p, color);
+        }
+
         sendMessage(sender, "messages.reloaded");
     }
 

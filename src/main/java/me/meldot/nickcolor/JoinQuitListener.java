@@ -29,24 +29,16 @@ public class JoinQuitListener implements Listener {
         Player player = event.getPlayer();
 
         // Скрываем ванильный ник сразу при входе
-        plugin.getNameTagManager().hideVanillaNameTag(player);
+        plugin.getNameTagManager().updateNameTag(player, null);
 
         // Асинхронная загрузка цвета
         plugin.getDatabaseManager().loadColorAsync(player.getUniqueId()).thenAccept(colorFormat -> {
-            // Возвращаемся в основной поток для спавна TextDisplay
             plugin.getServer().getScheduler().runTask(plugin, () -> {
-                // Защита от утечки сущности, если игрок отключился до завершения SQL-запроса
                 if (!player.isOnline()) return;
-
                 if (colorFormat != null && !colorFormat.isEmpty()) {
-                    // Если цвет найден, загружаем его в кеш плагина и обновляем ник
                     plugin.cachePlayerColor(player, colorFormat);
                     plugin.getNameTagManager().updateNameTag(player, colorFormat);
                     debug("Загружен цвет " + colorFormat + " для игрока " + player.getName());
-                } else {
-                    // Если цвета нет, просто отображаем стандартный белый ник через TextDisplay
-                    plugin.getNameTagManager().updateNameTag(player, null);
-                    debug("Цвет для игрока " + player.getName() + " не найден в БД.");
                 }
             });
         });
@@ -68,7 +60,7 @@ public class JoinQuitListener implements Listener {
         // Удаляем TextDisplay (ник над головой)
         plugin.getNameTagManager().removeNameTag(player);
 
-        debug("Цвет для " + player.getName() + " удален из кеша при выходе.");
+        debug("Данные игрока " + player.getName() + " выгружены из памяти.");
     }
 
     /**
