@@ -80,6 +80,12 @@ public class NickColorExpansion extends PlaceholderExpansion {
             return player.getName();
         }
 
+        if (params.equalsIgnoreCase("cooldown")) {
+            // %nickcolor_cooldown% - возвращает оставшееся время кулдауна в секундах
+            long left = plugin.getCooldown(player) / 1000;
+            return String.valueOf(left);
+        }
+
         return null; // Плейсхолдер не распознан
     }
 }

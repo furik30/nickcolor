@@ -18,13 +18,12 @@ commands:
       <gray>/nickcolor <цвет> <white>- Изменить цвет ника</white>
       <gray>/nickcolor <цвет1>:<цвет2> <white>- Градиент</white>
     aliases: [nc, nickc]
-    permission: nickcolor.use
 
 # Права (Permissions)
 permissions:
   nickcolor.use:
     description: Позволяет использовать базовые команды (/nc, /nc <hex>, /nc gradient, /nc random, /nc presets)
-    default: true
+    default: false
 
   nickcolor.admin.set:
     description: Позволяет изменять цвет другим игрокам (/nc set <игрок> <цвет>)
@@ -34,6 +33,10 @@ permissions:
     description: Позволяет перезагружать конфиг (/nc reload)
     default: op
 
+  nickcolor.bypass.cooldown:
+    description: Позволяет обходить кулдаун на смену ника
+    default: op
+
   nickcolor.*:
     description: Дает все права плагина
     default: op
@@ -41,3 +44,4 @@ permissions:
       nickcolor.use: true
       nickcolor.admin.set: true
       nickcolor.admin.reload: true
+      nickcolor.bypass.cooldown: true

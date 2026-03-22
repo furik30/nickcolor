@@ -20,6 +20,9 @@ public class NickColorPlugin extends JavaPlugin {
     // Потокобезопасный кеш цветов игроков для быстрого доступа (запрашивается FlectonePulse асинхронно)
     private final Map<UUID, String> playerColors = new ConcurrentHashMap<>();
 
+    // Кеш кулдаунов игроков (UUID -> Время истечения в мс)
+    private final Map<UUID, Long> cooldowns = new ConcurrentHashMap<>();
+
     @Override
     public void onEnable() {
         // Создание конфига по умолчанию
@@ -162,6 +165,33 @@ public class NickColorPlugin extends JavaPlugin {
 
         // Обновляем NameTag (сбрасываем на стандартный)
         nameTagManager.updateNameTag(player, null);
+    }
+
+    /**
+     * Устанавливает кулдаун для игрока.
+     */
+    public void setCooldown(Player player) {
+        int seconds = getConfig().getInt("cooldown.seconds", 0);
+        if (seconds > 0) {
+            cooldowns.put(player.getUniqueId(), System.currentTimeMillis() + (seconds * 1000L));
+        }
+    }
+
+    /**
+     * Возвращает оставшееся время кулдауна в миллисекундах.
+     *
+     * @param player Игрок.
+     * @return Оставшееся время (в миллисекундах) или 0, если кулдауна нет.
+     */
+    public long getCooldown(Player player) {
+        Long expireTime = cooldowns.get(player.getUniqueId());
+        if (expireTime == null) return 0;
+        long left = expireTime - System.currentTimeMillis();
+        if (left <= 0) {
+            cooldowns.remove(player.getUniqueId());
+            return 0;
+        }
+        return left;
     }
 
     /**

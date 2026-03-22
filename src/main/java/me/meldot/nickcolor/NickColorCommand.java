@@ -114,6 +114,10 @@ public class NickColorCommand implements CommandExecutor, TabCompleter {
         }
 
         Player player = (Player) sender;
+        if (!checkCooldownAndNotify(player)) {
+            return;
+        }
+
         String action = args[1].toLowerCase();
 
         if (action.equals("random")) {
@@ -137,7 +141,12 @@ public class NickColorCommand implements CommandExecutor, TabCompleter {
         }
 
         Player player = (Player) sender;
+        if (!checkCooldownAndNotify(player)) {
+            return;
+        }
+
         plugin.resetPlayerColor(player);
+        plugin.setCooldown(player);
         sendMessage(sender, "messages.color-reset");
     }
 
@@ -270,6 +279,9 @@ public class NickColorCommand implements CommandExecutor, TabCompleter {
             String successMsg = plugin.getConfig().getString("messages.gradient-applied", "<green>Установлен градиент: {gradient}</green>")
                     .replace("{gradient}", formatTag + hex1 + ":" + hex2 + "</gradient>");
             notifySuccess(sender, target, successMsg, "Случайный градиент установлен для игрока ");
+            if (sender.equals(target)) {
+                plugin.setCooldown(target);
+            }
         } else {
             String hex = ColorUtils.generateRandomHex();
             String formatTag = "<" + hex + ">";
@@ -278,6 +290,9 @@ public class NickColorCommand implements CommandExecutor, TabCompleter {
             String successMsg = plugin.getConfig().getString("messages.color-changed", "<green>Цвет установлен: {color}</green>")
                     .replace("{color}", formatTag + hex + "</" + hex.replace("#", "") + ">");
             notifySuccess(sender, target, successMsg, "Случайный цвет установлен для игрока ");
+            if (sender.equals(target)) {
+                plugin.setCooldown(target);
+            }
         }
     }
 
@@ -294,6 +309,9 @@ public class NickColorCommand implements CommandExecutor, TabCompleter {
         String successMsg = plugin.getConfig().getString("messages.color-changed", "<green>Цвет установлен: {color}</green>")
                 .replace("{color}", formatTag + formattedHex + "</" + formattedHex.replace("#", "") + ">");
         notifySuccess(sender, target, successMsg, "Цвет установлен для игрока ");
+        if (sender.equals(target)) {
+            plugin.setCooldown(target);
+        }
     }
 
     private void applyGradientToPlayer(Player target, String input, CommandSender sender) {
@@ -312,6 +330,9 @@ public class NickColorCommand implements CommandExecutor, TabCompleter {
         String successMsg = plugin.getConfig().getString("messages.gradient-applied", "<green>Установлен градиент: {gradient}</green>")
                 .replace("{gradient}", formatTag + fHex1 + ":" + fHex2 + "</gradient>");
         notifySuccess(sender, target, successMsg, "Градиент установлен для игрока ");
+        if (sender.equals(target)) {
+            plugin.setCooldown(target);
+        }
     }
 
     private void notifySuccess(CommandSender sender, Player target, String targetMessage, String adminPrefix) {
@@ -340,6 +361,21 @@ public class NickColorCommand implements CommandExecutor, TabCompleter {
 
     private void sendPlayerOnly(CommandSender sender) {
         sendMessage(sender, "messages.player-only");
+    }
+
+    private boolean checkCooldownAndNotify(Player player) {
+        if (player.hasPermission("nickcolor.bypass.cooldown") || player.hasPermission("nickcolor.admin.set")) {
+            return true;
+        }
+        long cooldownLeft = plugin.getCooldown(player);
+        if (cooldownLeft > 0) {
+            long secondsLeft = (cooldownLeft / 1000) + 1; // Округляем в большую сторону
+            String msg = plugin.getConfig().getString("messages.cooldown", "<red>Подождите {time} сек. перед следующей сменой ника!</red>")
+                    .replace("{time}", String.valueOf(secondsLeft));
+            player.sendMessage(ColorUtils.format(msg));
+            return false;
+        }
+        return true;
     }
 
     // --- ТАБ КОМПЛИТЕР ---
