@@ -7,7 +7,7 @@ author: furik30
 website: https://github.com/furik30/nickolor
 
 # Зависимости
-depend: [PlaceholderAPI]
+softdepend: [SuperVanish, PremiumVanish, PlaceholderAPI]
 
 # Команды
 commands:

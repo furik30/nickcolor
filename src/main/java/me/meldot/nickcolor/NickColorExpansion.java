@@ -2,8 +2,6 @@ package me.meldot.nickcolor;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Класс расширения PlaceholderAPI.
@@ -18,18 +16,20 @@ public class NickColorExpansion extends PlaceholderExpansion {
     }
 
     @Override
-    public @NotNull String getIdentifier() {
+    public String getIdentifier() {
         return "nickcolor";
     }
 
     @Override
-    public @NotNull String getAuthor() {
-        return "Jules"; // Или author из plugin.yml
+    public String getAuthor() {
+        // Берем список авторов из plugin.yml через современный Paper API
+        return String.join(", ", plugin.getPluginMeta().getAuthors());
     }
 
     @Override
-    public @NotNull String getVersion() {
-        return "1.0.0";
+    public String getVersion() {
+        // Берем версию напрямую из plugin.yml через современный Paper API
+        return plugin.getPluginMeta().getVersion();
     }
 
     @Override
@@ -50,7 +50,7 @@ public class NickColorExpansion extends PlaceholderExpansion {
      * @return Значение плейсхолдера или null.
      */
     @Override
-    public @Nullable String onPlaceholderRequest(Player player, @NotNull String params) {
+    public String onPlaceholderRequest(Player player, String params) {
         if (player == null) {
             return "";
         }

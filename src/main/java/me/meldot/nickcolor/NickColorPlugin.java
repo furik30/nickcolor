@@ -60,6 +60,15 @@ public class NickColorPlugin extends JavaPlugin {
             getLogger().warning("PlaceholderAPI не найден! Плейсхолдеры не будут работать.");
         }
 
+        // Интеграция с SuperVanish / PremiumVanish
+        if (Bukkit.getPluginManager().getPlugin("SuperVanish") != null || 
+            Bukkit.getPluginManager().getPlugin("PremiumVanish") != null) {
+            getServer().getPluginManager().registerEvents(new SuperVanishListener(this), this);
+            getLogger().info("Интеграция с SuperVanish/PremiumVanish включена! Ники будут скрываться в ванише.");
+        } else {
+            getLogger().info("SuperVanish/PremiumVanish не найден! Ники не будут скрываться в ванише.");
+        }
+
         getLogger().info("Плагин NickColor (SQLite, MiniMessage, TextDisplay) успешно загружен!");
     }
 
