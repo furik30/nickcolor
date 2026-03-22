@@ -29,6 +29,7 @@ buildNumber.properties
 .vscode/*
 .idea/*
 *.code-workspace
+*.diff
 .private
 .history/
 

@@ -17,7 +17,7 @@ commands:
       <red>Использование:</red>
       <gray>/nickcolor <цвет> <white>- Изменить цвет ника</white>
       <gray>/nickcolor <цвет1>:<цвет2> <white>- Градиент</white>
-    aliases: [nc, color, nickc]
+    aliases: [nc, nickc]
     permission: nickcolor.use
 
 # Права (Permissions)
