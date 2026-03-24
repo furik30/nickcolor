@@ -15,7 +15,7 @@ nametags:
   # Ванильные ники по умолчанию видно сквозь блоки, а кастомные (из-за ограничений TextDisplay) — нет.
   # Если установить false, плагин будет заменять даже обычные белые ники на TextDisplay,
   # чтобы они скрывались за стенами для однообразия с цветными.
-  vanilla-see-through: true
+  vanilla-see-through: false
 
 # Настройки кулдауна (задержки) на использование команд
 cooldown:
@@ -24,10 +24,13 @@ cooldown:
 # Пресеты для команды /nc presets
 # Формат: <имя_пресета>: "<hex1>:<hex2>" (для градиента) или "<hex>" (для сплошного)
 presets:
-  fire: "#FF0000:#FFA500"
-  ocean: "#0000FF:#00FFFF"
-  emerald: "#00FF00:#00AA00"
-  sunset: "#FF4500:#FFD700"
+  fire: "#FF0000:#FF5500:#FFAA00"
+  ice: "#00FFFF:#0088FF:#0000FF"
+  rainbow: "#FF0000:#FFFF00:#00FF00:#00FFFF:#0000FF:#FF00FF"
+  nature: "#00FF00:#00AA00:#006600"
+  gentle: "#FF69B4:#FFB6C1:#FFE4E1"
+  night: "#000080:#4B0082:#8B00FF"
+  sunny: "#FFFF00:#FFD700:#FFA500"
   ruby: "#E0115F"
   sapphire: "#0F52BA"
 
@@ -37,7 +40,7 @@ messages:
   help: |
     <gold><b>Справка по плагину NickColor:</b></gold>
     <gray>/nc <hex> <white>- Установить цвет (например: #FF5555)</white>
-    <gray>/nc <hex1>:<hex2> <white>- Установить градиент (например: #FF0000:#00FF00)</white>
+    <gray>/nc <hex1>:<hex2>:[hex3]... <white>- Установить градиент (от 2 до бесконечности цветов)</white>
     <gray>/nc random <white>- Установить случайный цвет</white>
     <gray>/nc random gradient <white>- Установить случайный градиент</white>
     <gray>/nc presets <white>- Открыть меню готовых пресетов</white>
@@ -53,7 +56,7 @@ messages:
   no-permission: "<red>У вас нет прав на использование этой команды!</red>"
   player-only: "<red>Эту команду могут использовать только игроки!</red>"
   invalid-command: "<red>Неверный формат команды! Используйте /nc help для справки.</red>"
-  invalid-gradient: "<red>Неверный формат градиента! Пример: #FF0000:#00FF00</red>"
+  invalid-gradient: "<red>Неверный формат градиента! Пример: #FF0000:#00FF00:#0000FF</red>"
   player-not-found: "<red>Игрок не найден или не в сети!</red>"
   cooldown: "<red>Подождите {time} сек. перед следующей сменой ника!</red>"
 

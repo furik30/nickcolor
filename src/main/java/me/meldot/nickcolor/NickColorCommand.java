@@ -179,8 +179,12 @@ public class NickColorCommand implements CommandExecutor, TabCompleter {
             if (split.length == 1) {
                 String formatTag = "<" + ColorUtils.ensureHexHasHash(split[0]) + ">";
                 presetComponent = ColorUtils.format(formatTag + presetName + "</" + ColorUtils.ensureHexHasHash(split[0]) + ">");
-            } else if (split.length == 2) {
-                String formatTag = "<gradient:" + ColorUtils.ensureHexHasHash(split[0]) + ":" + ColorUtils.ensureHexHasHash(split[1]) + ">";
+            } else if (split.length >= 2) {
+                List<String> formattedHexes = Arrays.stream(split)
+                        .map(ColorUtils::ensureHexHasHash)
+                        .collect(Collectors.toList());
+                String joinedHexes = String.join(":", formattedHexes);
+                String formatTag = "<gradient:" + joinedHexes + ">";
                 presetComponent = ColorUtils.format(formatTag + presetName + "</gradient>");
             } else {
                 continue;
@@ -316,19 +320,27 @@ public class NickColorCommand implements CommandExecutor, TabCompleter {
 
     private void applyGradientToPlayer(Player target, String input, CommandSender sender) {
         String[] split = input.split(":");
-        if (split.length != 2 || !ColorUtils.isValidHex(split[0]) || !ColorUtils.isValidHex(split[1])) {
+        if (split.length < 2) {
             sendMessage(sender, "messages.invalid-gradient");
             return;
         }
 
-        String fHex1 = ColorUtils.ensureHexHasHash(split[0]);
-        String fHex2 = ColorUtils.ensureHexHasHash(split[1]);
-        String formatTag = "<gradient:" + fHex1 + ":" + fHex2 + ">";
+        List<String> formattedHexes = new ArrayList<>();
+        for (String hex : split) {
+            if (!ColorUtils.isValidHex(hex)) {
+                sendMessage(sender, "messages.invalid-gradient");
+                return;
+            }
+            formattedHexes.add(ColorUtils.ensureHexHasHash(hex));
+        }
+
+        String joinedHexes = String.join(":", formattedHexes);
+        String formatTag = "<gradient:" + joinedHexes + ">";
 
         plugin.setPlayerColor(target, formatTag);
 
         String successMsg = plugin.getConfig().getString("messages.gradient-applied", "<green>Установлен градиент: {gradient}</green>")
-                .replace("{gradient}", formatTag + fHex1 + ":" + fHex2 + "</gradient>");
+                .replace("{gradient}", formatTag + joinedHexes + "</gradient>");
         notifySuccess(sender, target, successMsg, "Градиент установлен для игрока ");
         if (sender.equals(target)) {
             plugin.setCooldown(target);

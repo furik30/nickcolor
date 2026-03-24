@@ -62,7 +62,7 @@ public class NickColorExpansion extends PlaceholderExpansion {
             if (colorFormat != null && !colorFormat.isEmpty()) {
                 return colorFormat;
             }
-            return ""; // Возвращаем пустую строку, если цвета нет
+            return "<gradient:#d1d1d1:#ffffff:#b0b0b0>"; // Возвращаем дефолтный градиент, если цвета нет
         }
 
         if (params.equalsIgnoreCase("name")) {
@@ -77,7 +77,7 @@ public class NickColorExpansion extends PlaceholderExpansion {
                 }
             }
             // Возвращаем просто имя игрока, если цвета нет
-            return player.getName();
+            return "<gradient:#d1d1d1:#ffffff:#b0b0b0>" + player.getName() + "</gradient>";
         }
 
         if (params.equalsIgnoreCase("cooldown")) {
