@@ -3,7 +3,7 @@ package me.meldot.nickcolor;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
-import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
@@ -31,8 +31,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Управляет никами над головой (NameTag) с помощью связки ArmorStand + TextDisplay.
- * Поддерживает уступку места для GSit и полностью блокирует мигание ванильных ников.
+ * Управляет никами над головой (NameTag) с помощью связки Interaction + TextDisplay.
+ * Полностью совместим с GSit и оптимизирован под высокую производительность.
  */
 public class NameTagManager implements Listener {
 
@@ -48,20 +48,20 @@ public class NameTagManager implements Listener {
      * Вспомогательный класс для хранения связки сущностей.
      */
     private static class NameTagEntities {
-        final ArmorStand stand;
+        final Interaction mount;
         final TextDisplay display;
 
-        NameTagEntities(ArmorStand stand, TextDisplay display) {
-            this.stand = stand;
+        NameTagEntities(Interaction mount, TextDisplay display) {
+            this.mount = mount;
             this.display = display;
         }
 
         boolean isDead() {
-            return stand.isDead() || display.isDead();
+            return mount.isDead() || display.isDead();
         }
 
         void remove() {
-            if (!stand.isDead()) stand.remove();
+            if (!mount.isDead()) mount.remove();
             if (!display.isDead()) display.remove();
         }
     }
@@ -69,14 +69,13 @@ public class NameTagManager implements Listener {
     public NameTagManager(NickColorPlugin plugin) {
         this.plugin = plugin;
         setupHiddenTeam();
-        startPassengerTrafficController();
-        startVanillaTagBlocker();
+        startMountMaintainer();
     }
 
     /**
-     * Умный контроллер, который уступает место другим пассажирам (например, GSit).
+     * Контроллер удержания сущностей. Работает каждый тик, но выполняет только атомарные проверки.
      */
-    private void startPassengerTrafficController() {
+private void startMountMaintainer() {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (Map.Entry<UUID, NameTagEntities> entry : playerDisplays.entrySet()) {
                 Player player = Bukkit.getPlayer(entry.getKey());
@@ -85,71 +84,19 @@ public class NameTagManager implements Listener {
                 NameTagEntities entities = entry.getValue();
                 if (entities.isDead()) continue;
 
-                // Проверяем, есть ли другие пассажиры (например, игрок от GSit)
-                boolean hasForeignPassenger = player.getPassengers().stream()
-                        .anyMatch(p -> !p.equals(entities.stand));
-
-                // Всегда возвращаем стойку на место (если её сбили)
-                if (!player.getPassengers().contains(entities.stand) && !player.isDead()) {
-                    player.addPassenger(entities.stand);
-                    refreshVisibility(player, player.getGameMode());
+                // ДОБАВЛЕНО: Не возвращаем mount, если плагин сейчас уступает место для GSit
+                if (!player.getPassengers().contains(entities.mount) && !player.isDead()) {
+                    if (!allowedDismounts.contains(player.getUniqueId())) {
+                        player.addPassenger(entities.mount);
+                    }
                 }
                 
-                // Текст всегда должен сидеть на стойке
-                if (!entities.stand.getPassengers().contains(entities.display)) {
-                    entities.stand.addPassenger(entities.display);
+                // Текст всегда должен сидеть на Interaction
+                if (!entities.mount.getPassengers().contains(entities.display)) {
+                    entities.mount.addPassenger(entities.display);
                 }
-
-                // Плавное смещение ника вверх, если кто-то сидит на голове
-                float targetOffset = hasForeignPassenger ? PASSENGER_Y_OFFSET : PASSENGER_Y_OFFSET;
-                updateDisplayOffset(entities.display, targetOffset);
             }
         }, 1L, 1L);
-    }
-
-    private void updateDisplayOffset(TextDisplay display, float targetY) {
-        Transformation current = display.getTransformation();
-        if (Math.abs(current.getTranslation().y - targetY) > 0.01f) {
-            display.setInterpolationDuration(1);
-            display.setInterpolationDelay(0);
-            display.setTransformation(new Transformation(
-                    new Vector3f(0f, targetY, 0f), 
-                    current.getLeftRotation(),                        
-                    current.getScale(),                 
-                    current.getRightRotation()                         
-            ));
-        }
-    }
-
-    private void startVanillaTagBlocker() {
-        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            Scoreboard mainScoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (!playerDisplays.containsKey(player.getUniqueId())) continue;
-
-                blockVanillaNameTag(player, mainScoreboard);
-                
-                for (Player observer : Bukkit.getOnlinePlayers()) {
-                    blockVanillaNameTag(player, observer.getScoreboard());
-                }
-            }
-        }, 5L, 5L); 
-    }
-
-    private void blockVanillaNameTag(Player player, Scoreboard scoreboard) {
-        if (scoreboard == null) return;
-        Team team = scoreboard.getEntryTeam(player.getName());
-        
-        if (team == null) {
-            Team hiddenTeam = scoreboard.getTeam(HIDDEN_TEAM_NAME);
-            if (hiddenTeam != null && !hiddenTeam.hasEntry(player.getName())) {
-                hiddenTeam.addEntry(player.getName());
-            }
-        } else {
-            if (team.getOption(Team.Option.NAME_TAG_VISIBILITY) != Team.OptionStatus.NEVER) {
-                team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
-            }
-        }
     }
 
     private void setupHiddenTeam() {
@@ -190,36 +137,35 @@ public class NameTagManager implements Listener {
         if (entities == null || entities.isDead()) {
             if (entities != null) entities.remove();
 
-            // 1. Невидимая прокладка (ArmorStand)
-            ArmorStand stand = player.getWorld().spawn(player.getLocation(), ArmorStand.class, entity -> {
+            // 1. Создаем невидимый хитбокс
+            Interaction mount = player.getWorld().spawn(player.getLocation(), Interaction.class, entity -> {
                 entity.setPersistent(false);
-                entity.setVisible(false);
-                entity.setMarker(true); 
-                entity.setSmall(true); // Small ставит центр чуть ниже, что дает нам простор для оффсета
-                entity.setBasePlate(false);
-                entity.setGravity(false);
+                entity.setInteractionWidth(0f); 
+                entity.setInteractionHeight(PASSENGER_Y_OFFSET); 
             });
 
-            // 2. Сам текст
+            // 2. Создаем сам текст
             TextDisplay display = player.getWorld().spawn(player.getLocation(), TextDisplay.class, entity -> {
                 entity.setPersistent(false);
                 entity.setBillboard(Display.Billboard.CENTER);
                 entity.setDefaultBackground(true);
                 
-                // Применяем визуальный сдвиг вверх, чтобы приподнять ник от ArmorStand
                 entity.setTransformation(new Transformation(
-                        new Vector3f(0f, PASSENGER_Y_OFFSET, 0f), 
+                        new Vector3f(0f, 0f, 0f), 
                         new AxisAngle4f(),                        
                         new Vector3f(1f, 1f, 1f),                 
                         new AxisAngle4f()                         
                 ));
             });
 
-            player.hideEntity(plugin, stand);
+            player.hideEntity(plugin, mount);
             player.hideEntity(plugin, display);
             
-            entities = new NameTagEntities(stand, display);
+            entities = new NameTagEntities(mount, display);
             playerDisplays.put(player.getUniqueId(), entities);
+
+            // Сразу скрываем стандартный ник в основном скорборде сервера
+            setVanillaNameTagVisible(player, false);
         }
 
         Component nameComponent = hasColor
@@ -231,13 +177,8 @@ public class NameTagManager implements Listener {
     }
 
     private void updateOpacity(TextDisplay display, boolean isSneaking) {
-        if (isSneaking) {
-            display.setTextOpacity((byte) 100);
-            display.setSeeThrough(false);
-        } else {
-            display.setTextOpacity((byte) 255);
-            display.setSeeThrough(true);
-        }
+        display.setSeeThrough(false);
+        display.setTextOpacity(isSneaking ? (byte) 100 : (byte) -1);
     }
 
     public void refreshVisibility(Player player, GameMode gameMode) {
@@ -278,14 +219,8 @@ public class NameTagManager implements Listener {
         }
         playerDisplays.clear();
 
-        Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
-        Team team = scoreboard.getTeam(HIDDEN_TEAM_NAME);
+        Team team = Bukkit.getScoreboardManager().getMainScoreboard().getTeam(HIDDEN_TEAM_NAME);
         if (team != null) team.unregister();
-        
-        for (Player observer : Bukkit.getOnlinePlayers()) {
-            Team observerTeam = observer.getScoreboard().getTeam(HIDDEN_TEAM_NAME);
-            if (observerTeam != null) observerTeam.unregister();
-        }
     }
 
     // --- Обработчики событий ---
@@ -312,41 +247,32 @@ public class NameTagManager implements Listener {
         if (entities != null && !entities.isDead()) {
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (player.isOnline()) {
-                    if (!entities.stand.getPassengers().contains(entities.display)) {
-                        entities.stand.addPassenger(entities.display);
-                    }
-                    if (!player.getPassengers().contains(entities.stand)) {
-                        player.addPassenger(entities.stand);
-                    }
+                    refreshVisibility(player, player.getGameMode());
                 }
             }, 1L);
         }
     }
+    
+    /**
+     * Исправление совместимости с GSit:
+     * Освобождаем слот пассажира за мгновение до того, как GSit проверит доступность седла на игроке.
+     */
 
     @EventHandler
     public void onEntityDismount(EntityDismountEvent event) {
-        // Защита матрешки: TextDisplay не может слезть с ArmorStand
-        for (NameTagEntities entities : playerDisplays.values()) {
-            if (event.getEntity().equals(entities.display)) {
-                event.setCancelled(true);
-                return;
+        // ИСПРАВЛЕНО: Используем getDismounted(), чтобы получить игрока-транспорт
+        if (event.getDismounted() instanceof Player player) {
+            // Если размонтирование вызвано нашим фиксом для GSit — игнорируем отмену события
+            if (allowedDismounts.contains(player.getUniqueId())) {
+                return; 
             }
         }
-        
-        // Разрешаем ArmorStand слезть с игрока ТОЛЬКО если это запросил наш плагин для GSit
-        if (event.getEntity() instanceof ArmorStand stand) {
-            for (Map.Entry<UUID, NameTagEntities> entry : playerDisplays.entrySet()) {
-                if (stand.equals(entry.getValue().stand)) {
-                    if (event.getDismounted() instanceof Player player) {
-                        if (player.isDead()) return; 
-                        
-                        if (allowedDismounts.remove(player.getUniqueId())) {
-                            return;
-                        }
-                    }
-                    event.setCancelled(true);
-                    return;
-                }
+
+        // Запрещаем случайное или багованное спешивание кастомного ника
+        for (NameTagEntities entities : playerDisplays.values()) {
+            if (event.getEntity().equals(entities.display) || event.getEntity().equals(entities.mount)) {
+                event.setCancelled(true);
+                return;
             }
         }
     }
@@ -367,9 +293,6 @@ public class NameTagManager implements Listener {
         if (entities != null && !entities.isDead()) {
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (player.isOnline()) {
-                    if (!player.getPassengers().contains(entities.stand)) {
-                        player.addPassenger(entities.stand);
-                    }
                     refreshVisibility(player, player.getGameMode()); 
                 }
             }, 1L);
@@ -380,10 +303,18 @@ public class NameTagManager implements Listener {
     public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
         if (event.getRightClicked() instanceof Player target) {
             NameTagEntities entities = playerDisplays.get(target.getUniqueId());
-            if (entities != null && target.getPassengers().contains(entities.stand)) {
-                // Временно освобождаем место ДО того, как GSit проверит занятость игрока. Ник при этом не исчезает, а наш таймер вернет стойку обратно в следующем тике!
+            
+            if (entities != null && target.getPassengers().contains(entities.mount)) {
+                // Разрешаем размонтирование сущности
                 allowedDismounts.add(target.getUniqueId());
-                target.removePassenger(entities.stand);
+                
+                // РАЗКОММЕНТИРОВАНО: Снимаем прокладку, чтобы GSit увидел пустое место
+                target.removePassenger(entities.mount);
+                
+                // Даем GSit запас времени (2 тика вместо 1), чтобы он точно успел посадить игрока
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    allowedDismounts.remove(target.getUniqueId());
+                }, 2L);
             }
         }
     }
