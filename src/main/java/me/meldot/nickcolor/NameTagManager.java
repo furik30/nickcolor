@@ -119,9 +119,17 @@ private void startMountMaintainer() {
     }
 
     public void updateNameTag(Player player, String colorFormat) {
+        boolean enable = plugin.getConfig().getBoolean("nametags.enable", true);
         boolean customEnabled = plugin.getConfig().getBoolean("nametags.custom-enabled", true);
         boolean vanillaSeeThrough = plugin.getConfig().getBoolean("nametags.vanilla-see-through", true);
         
+        if (!enable) {
+            NameTagEntities entities = playerDisplays.remove(player.getUniqueId());
+            if (entities != null) entities.remove();
+            setVanillaNameTagVisible(player, false);
+            return;
+        }
+
         boolean hasColor = customEnabled && colorFormat != null && !colorFormat.isEmpty();
         boolean forceTextDisplay = !vanillaSeeThrough;
 
