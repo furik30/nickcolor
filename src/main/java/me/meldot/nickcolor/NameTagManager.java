@@ -42,8 +42,6 @@ public class NameTagManager implements Listener {
     private static final String HIDDEN_TEAM_NAME = "NC_HIDDEN_NAMETAGS";
 
     // Сдвиг по Y для корректировки высоты пассажира. 
-    private static final float PASSENGER_Y_OFFSET = 0.3f; 
-
     /**
      * Вспомогательный класс для хранения связки сущностей.
      */
@@ -138,10 +136,11 @@ private void startMountMaintainer() {
             if (entities != null) entities.remove();
 
             // 1. Создаем невидимый хитбокс
+            float passengerYOffset = (float) plugin.getConfig().getDouble("nametags.passenger-y-offset");
             Interaction mount = player.getWorld().spawn(player.getLocation(), Interaction.class, entity -> {
                 entity.setPersistent(false);
                 entity.setInteractionWidth(0f); 
-                entity.setInteractionHeight(PASSENGER_Y_OFFSET); 
+                entity.setInteractionHeight(passengerYOffset); 
             });
 
             // 2. Создаем сам текст
