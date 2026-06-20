@@ -13,6 +13,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.entity.EntityDismountEvent;
@@ -140,7 +141,7 @@ private void startMountMaintainer() {
         
         NameTagEntities entities = playerDisplays.get(player.getUniqueId());
 
-        if (entities == null || entities.isDead()) {
+        if (entities == null || entities.isDead() || !entities.mount.getWorld().equals(player.getWorld())) {
             if (entities != null) entities.remove();
 
             // 1. Создаем невидимый хитбокс
@@ -158,11 +159,10 @@ private void startMountMaintainer() {
                 entity.setDefaultBackground(true);
                 
                 entity.setTransformation(new Transformation(
-                        new Vector3f(0f, 0f, 0f), 
-                        new AxisAngle4f(),                        
-                        new Vector3f(1f, 1f, 1f),                 
-                        new AxisAngle4f()                         
-                ));
+                        new Vector3f(0f, 0f, 0f),
+                        new AxisAngle4f(),
+                        new Vector3f(1f, 1f, 1f),
+                        new AxisAngle4f()));
             });
 
             player.hideEntity(plugin, mount);
@@ -259,7 +259,13 @@ private void startMountMaintainer() {
             }, 1L);
         }
     }
-    
+
+    @EventHandler
+    public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
+        Player player = event.getPlayer();
+        updateNameTag(player, plugin.getPlayerColor(player));
+    }
+
     /**
      * Исправление совместимости с GSit:
      * Освобождаем слот пассажира за мгновение до того, как GSit проверит доступность седла на игроке.
