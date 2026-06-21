@@ -59,13 +59,17 @@ public class JoinQuitListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
 
-        // Удаляем кеш
-        plugin.removePlayerColorFromCache(player);
-
         // Удаляем TextDisplay (ник над головой)
         plugin.getNameTagManager().removeNameTag(player);
 
-        debug("Данные игрока " + player.getName() + " выгружены из памяти.");
+        // Задерживаем очистку кеша цвета на 3 секунды (60 тиков),
+        // чтобы плагины сообщений об уходе успели прочесть плейсхолдер цвета игрока.
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!player.isOnline()) {
+                plugin.removePlayerColorFromCache(player);
+                debug("Данные игрока " + player.getName() + " выгружены из памяти.");
+            }
+        }, 60L);
     }
 
     /**
