@@ -12,6 +12,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.event.entity.EntityPotionEffectEvent;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
@@ -73,9 +75,10 @@ public class NameTagManager implements Listener {
 
     /**
      * Контроллер удержания сущностей. Работает каждый тик, но выполняет только атомарные проверки.
-     */
-private void startMountMaintainer() {
+    */
+    private void startMountMaintainer() {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            java.util.List<Player> toRemove = new java.util.ArrayList<>();
             for (Map.Entry<UUID, NameTagEntities> entry : playerDisplays.entrySet()) {
                 Player player = Bukkit.getPlayer(entry.getKey());
                 if (player == null || !player.isOnline()) continue;
@@ -83,8 +86,18 @@ private void startMountMaintainer() {
                 NameTagEntities entities = entry.getValue();
                 if (entities.isDead()) continue;
 
+                boolean shouldHide = player.isDead()
+                        || player.getGameMode() == org.bukkit.GameMode.SPECTATOR
+                        || isPlayerVanished(player)
+                        || player.hasPotionEffect(PotionEffectType.INVISIBILITY);
+
+                if (shouldHide) {
+                    toRemove.add(player);
+                    continue;
+                }
+
                 // ДОБАВЛЕНО: Не возвращаем mount, если плагин сейчас уступает место для GSit
-                if (!player.getPassengers().contains(entities.mount) && !player.isDead()) {
+                if (!player.getPassengers().contains(entities.mount)) {
                     if (!allowedDismounts.contains(player.getUniqueId())) {
                         player.addPassenger(entities.mount);
                     }
@@ -94,6 +107,9 @@ private void startMountMaintainer() {
                 if (!entities.mount.getPassengers().contains(entities.display)) {
                     entities.mount.addPassenger(entities.display);
                 }
+            }
+            for (Player p : toRemove) {
+                removeNameTag(p);
             }
         }, 1L, 1L);
     }
@@ -105,6 +121,7 @@ private void startMountMaintainer() {
             team = scoreboard.registerNewTeam(HIDDEN_TEAM_NAME);
         }
         team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
+        team.setCanSeeFriendlyInvisibles(false);
     }
 
     public void setVanillaNameTagVisible(Player target, boolean visible) {
@@ -138,6 +155,16 @@ private void startMountMaintainer() {
             removeNameTag(player);
             return;
         }        
+
+        boolean shouldHide = player.isDead()
+                || player.getGameMode() == org.bukkit.GameMode.SPECTATOR
+                || isPlayerVanished(player)
+                || player.hasPotionEffect(PotionEffectType.INVISIBILITY);
+
+        if (shouldHide) {
+            removeNameTag(player);
+            return;
+        }
         
         NameTagEntities entities = playerDisplays.get(player.getUniqueId());
 
@@ -189,17 +216,7 @@ private void startMountMaintainer() {
     }
 
     public void refreshVisibility(Player player, GameMode gameMode) {
-        NameTagEntities entities = playerDisplays.get(player.getUniqueId());
-        if (entities == null || entities.isDead()) return;
-
-        boolean isSpectator = (gameMode == GameMode.SPECTATOR);
-        boolean isVanished = isPlayerVanished(player);
-
-        if (isSpectator || isVanished) {
-            entities.display.setViewRange(0f);
-        } else {
-            entities.display.setViewRange(1.0f);
-        }
+        updateNameTag(player, plugin.getPlayerColor(player));
     }
 
     @Deprecated
@@ -250,20 +267,21 @@ private void startMountMaintainer() {
     @EventHandler
     public void onPlayerTeleport(PlayerTeleportEvent event) {
         Player player = event.getPlayer();
-        NameTagEntities entities = playerDisplays.get(player.getUniqueId());
-        if (entities != null && !entities.isDead()) {
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                if (player.isOnline()) {
-                    refreshVisibility(player, player.getGameMode());
-                }
-            }, 1L);
-        }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) {
+                refreshVisibility(player, player.getGameMode());
+            }
+        }, 1L);
     }
 
     @EventHandler
     public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
-        updateNameTag(player, plugin.getPlayerColor(player));
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) {
+                refreshVisibility(player, player.getGameMode());
+            }
+        }, 1L);
     }
 
     /**
@@ -293,23 +311,34 @@ private void startMountMaintainer() {
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getPlayer();
-        NameTagEntities entities = playerDisplays.get(player.getUniqueId());
-        if (entities != null && !entities.isDead()) {
-            entities.display.setViewRange(0f); 
-        }
+        removeNameTag(player);
     }
 
     @EventHandler
     public void onPlayerRespawn(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
-        NameTagEntities entities = playerDisplays.get(player.getUniqueId());
-        if (entities != null && !entities.isDead()) {
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                if (player.isOnline()) {
-                    refreshVisibility(player, player.getGameMode()); 
-                }
-            }, 1L);
-        }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) {
+                refreshVisibility(player, player.getGameMode()); 
+            }
+        }, 1L);
+    }
+
+    @EventHandler
+    public void onEntityPotionEffect(EntityPotionEffectEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+
+        // Проверяем и новый и старый эффект — ловим и добавление и снятие невидимости
+        boolean isInvisibilityEvent =
+                (event.getNewEffect() != null && event.getNewEffect().getType().equals(PotionEffectType.INVISIBILITY))
+             || (event.getOldEffect() != null && event.getOldEffect().getType().equals(PotionEffectType.INVISIBILITY));
+
+        if (!isInvisibilityEvent) return;
+
+        // Эффект ещё не применён/снят в момент события — ждём 1 тик
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) refreshVisibility(player, player.getGameMode());
+        }, 1L);
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

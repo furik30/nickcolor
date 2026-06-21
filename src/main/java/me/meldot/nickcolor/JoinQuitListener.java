@@ -29,7 +29,11 @@ public class JoinQuitListener implements Listener {
         Player player = event.getPlayer();
 
         // Скрываем ванильный ник сразу при входе
-        plugin.getNameTagManager().updateNameTag(player, null);
+        // Через 1 тик, чтобы SuperVanish успел выставить метадату vanished
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (!player.isOnline()) return;
+            plugin.getNameTagManager().updateNameTag(player, null);
+        });
 
         // Асинхронная загрузка цвета
         plugin.getDatabaseManager().loadColorAsync(player.getUniqueId()).thenAccept(colorFormat -> {
@@ -37,9 +41,10 @@ public class JoinQuitListener implements Listener {
                 if (!player.isOnline()) return;
                 if (colorFormat != null && !colorFormat.isEmpty()) {
                     plugin.cachePlayerColor(player, colorFormat);
-                    plugin.getNameTagManager().updateNameTag(player, colorFormat);
                     debug("Загружен цвет " + colorFormat + " для игрока " + player.getName());
                 }
+                // updateNameTag внутри уже вызывает refreshVisibility — ваниш/спектатор учтутся
+                plugin.getNameTagManager().updateNameTag(player, colorFormat);
             });
         });
     }
